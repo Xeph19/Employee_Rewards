@@ -1,0 +1,3 @@
+export default function CatalogueFilters({ search, category, categories, onSearch, onCategory }) {
+    return <div className="grid grid-cols-[1fr_14rem] gap-3 rounded-2xl border border-cod-gray/20 bg-cararra p-4 shadow-sm max-sm:grid-cols-1"><label className="grid gap-1.5 text-sm font-semibold">Search rewards<input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Merchant or reward name" /></label><label className="grid gap-1.5 text-sm font-semibold">Category<select value={category} onChange={(event) => onCategory(event.target.value)}><option value="">All categories</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label></div>
+}
