@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../../api/client';
 import { apiRoutes } from '../../api/routes';
+import Button from '../common/Button';
 
 export default function EmployeeEditForm({ employee, employees, onSaved }) {
     const [errors, setErrors] = useState({});
@@ -99,12 +100,24 @@ export default function EmployeeEditForm({ employee, employees, onSaved }) {
                     </option>
                 ))}
             </select>
-            <input
-                name="joined_at"
-                type="date"
-                defaultValue={employee.joined_at?.slice(0, 10) ?? ''}
-                aria-label="Join date"
-            />
+            <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-cod-gray/70">Joined Date</label>
+                <input
+                    name="joined_at"
+                    type="date"
+                    defaultValue={employee.joined_at?.slice(0, 10) ?? ''}
+                    aria-label="Join date"
+                />
+            </div>
+            <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-cod-gray/70">Birth Date</label>
+                <input
+                    name="birth_date"
+                    type="date"
+                    defaultValue={employee.birth_date?.slice(0, 10) ?? ''}
+                    aria-label="Birth date"
+                />
+            </div>
             <div className="border-cod-gray/20 bg-cararra col-span-full flex items-center justify-between rounded-xl border p-3">
                 <label className="text-cod-gray flex cursor-pointer items-center gap-2 text-sm font-semibold">
                     <input
@@ -130,12 +143,14 @@ export default function EmployeeEditForm({ employee, employees, onSaved }) {
                         ))}
                 </div>
             )}
-            <button
-                disabled={updateEmployee.isPending}
-                className="bg-cod-gray text-cararra hover:outline-pomegranate col-span-full rounded-xl px-4 py-3 font-bold hover:outline-2 disabled:cursor-wait disabled:opacity-60"
+            <Button
+                type="submit"
+                size="lg"
+                loading={updateEmployee.isPending}
+                className="col-span-full w-full"
             >
                 {updateEmployee.isPending ? 'Saving...' : 'Save changes'}
-            </button>
+            </Button>
         </form>
     );
 }

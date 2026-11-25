@@ -1,0 +1,18 @@
+{
+  "name": "BrightThanks Employee Rewards",
+  "short_name": "BrightThanks",
+  "description": "Recognition, rewards, and appreciation platform for modern teams.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f3ef",
+  "theme_color": "#111111",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

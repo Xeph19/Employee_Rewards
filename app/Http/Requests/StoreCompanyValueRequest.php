@@ -18,6 +18,7 @@ class StoreCompanyValueRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:100', Rule::unique('company_values')],
             'description' => ['nullable', 'string', 'max:500'],
+            'default_points' => ['nullable', 'integer', 'min:1', 'max:1000000'],
             'color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }

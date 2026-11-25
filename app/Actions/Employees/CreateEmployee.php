@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class CreateEmployee
 {
-    /** @param array{name:string,email:string,password:string,employee_number:string,department:string,job_title:string,manager_id?:int|null,role:string,joined_at?:string|null} $data */
+    /** @param array{name:string,email:string,password:string,employee_number:string,department:string,job_title:string,manager_id?:int|null,role:string,joined_at?:string|null,birth_date?:string|null} $data */
     public function handle(array $data): Employee
     {
         return DB::transaction(function () use ($data): Employee {
@@ -30,6 +30,7 @@ class CreateEmployee
                 'job_title' => $data['job_title'],
                 'manager_id' => $data['manager_id'] ?? null,
                 'joined_at' => $data['joined_at'] ?? null,
+                'birth_date' => $data['birth_date'] ?? null,
             ]);
 
             return $employee->load(['user.roles', 'manager.user']);

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Button from '../common/Button';
 
 export default function RecognitionCard({ recognition, canRevoke, onRevoke }) {
     const [reason, setReason] = useState('');
@@ -45,25 +46,26 @@ export default function RecognitionCard({ recognition, canRevoke, onRevoke }) {
                 </time>
             </div>
             {canRevoke && (
-                <form
-                    className="mt-4 flex gap-2 max-sm:flex-col"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        onRevoke(recognition.id, reason);
-                    }}
-                >
+                <div className="mt-4 flex gap-2 max-sm:flex-col">
                     <input
                         className="flex-1"
-                        required
-                        minLength="5"
                         value={reason}
                         onChange={(event) => setReason(event.target.value)}
                         placeholder="Reason for revocation"
                     />
-                    <button className="border-pomegranate text-cod-gray hover:bg-cod-gray hover:text-cararra rounded-xl border-2 bg-transparent px-4 py-2 font-bold transition">
+                    <Button
+                        type="button"
+                        variant="danger"
+                        disabled={!reason.trim()}
+                        onClick={() => {
+                            if (reason.trim()) {
+                                onRevoke(recognition, reason.trim());
+                            }
+                        }}
+                    >
                         Revoke
-                    </button>
-                </form>
+                    </Button>
+                </div>
             )}
         </article>
     );

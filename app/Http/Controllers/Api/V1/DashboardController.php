@@ -26,7 +26,8 @@ class DashboardController extends Controller
         $canAward = $user->can('create', Recognition::class);
         $userEmployeeId = $user->employee?->id;
 
-        $recipients = User::query()
+        $recipientsCacheKey = "recipients:user_{$user->id}:".($isAdmin ? 'admin' : 'mgr_'.($userEmployeeId ?? '0'));
+        $recipients = Cache::remember($recipientsCacheKey, 60, fn () => User::query()
             ->select(['id', 'name', 'email'])
             ->with('employee:id,user_id,manager_id,department,job_title')
             ->when(! $canAward, fn ($query) => $query->whereRaw('1 = 0'))
@@ -46,7 +47,7 @@ class DashboardController extends Controller
             )
             ->where('id', '!=', $user->id)
             ->orderBy('name')
-            ->get();
+            ->get());
 
         $occasions = Cache::remember(
             $isAdmin ? 'occasions:all:v1' : 'occasions:active:v1',
@@ -64,31 +65,6 @@ class DashboardController extends Controller
                 : CompanyValue::query()->active()->orderBy('name')->get()
         );
 
-        $recognitions = Cache::remember('recognitions:feed:v1', 30, function () {
-            return Recognition::query()
-                ->select([
-                    'id',
-                    'public_id',
-                    'recipient_id',
-                    'awarded_by',
-                    'occasion_id',
-                    'message',
-                    'points',
-                    'created_at',
-                ])
-                ->whereNull('revoked_at')
-                ->with([
-                    'recipient:id,name',
-                    'awarder:id,name',
-                    'occasion:id,name',
-                    'companyValues:id,name,color',
-                ])
-                ->latest('created_at')
-                ->latest('id')
-                ->limit(50)
-                ->get();
-        });
-
         return response()->json([
             'data' => [
                 'user' => $user,
@@ -102,7 +78,6 @@ class DashboardController extends Controller
                 'recipients' => $recipients,
                 'occasions' => $occasions,
                 'company_values' => $companyValues,
-                'recognitions' => $recognitions,
                 'points_per_sgd' => config('rewards.points_per_sgd'),
             ],
         ]);

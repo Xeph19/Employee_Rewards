@@ -1,80 +1,95 @@
+import { useState } from 'react';
 import { useConnectivityQuery } from '../../queries/useConnectivityQuery';
+import BrandMark from '../common/BrandMark';
+import Button from '../common/Button';
+import Icon from '../common/Icon';
+import Tooltip from '../common/Tooltip';
+import NotificationBell from '../common/NotificationBell';
 
 export default function AppHeader({
     user,
     roles,
     view,
     canViewEmployees,
+    notifications = [],
+    onClearNotifications,
     onNavigate,
     onOpenEmployees,
     onLogout,
 }) {
-    const initials = user.name
-        .split(' ')
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join('');
+    const [menuOpen, setMenuOpen] = useState(false);
+    const initials = user.name.split(' ').map((part) => part[0]).slice(0, 2).join('');
     const connectivityQuery = useConnectivityQuery();
     const isHealthy = connectivityQuery.data?.status === 'ok';
 
+    const navigate = (destination) => {
+        setMenuOpen(false);
+        if (destination === 'employees') onOpenEmployees();
+        else onNavigate(destination);
+    };
+
+    const navigation = [
+        { id: 'recognition', label: 'Recognition', icon: 'recognition', description: 'Celebrate contributions and view company recognition.' },
+        { id: 'redemption', label: 'Redeem', icon: 'gift', description: 'Browse rewards catalogue and spend points.' },
+        { id: 'coupons', label: 'My Rewards', icon: 'ticket', description: 'View your redeemed vouchers, coupons, and merchant claim codes.' },
+        ...(roles.includes('admin') ? [{ id: 'analytics', label: 'Analytics', icon: 'chart', description: 'View system totals, Chart.js velocity, and audit reports.' }] : []),
+        ...(canViewEmployees ? [{ id: 'employees', label: 'Employees', icon: 'users', description: 'Manage profiles, roles, reporting lines, and eligibility.' }] : []),
+    ];
+
     return (
-        <header className="border-cod-gray bg-cod-gray sticky top-0 z-10 flex min-h-18 items-center gap-8 border-b px-[5vw] max-sm:flex-wrap max-sm:gap-2 max-sm:px-4 max-sm:py-3">
-            <div className="text-cararra flex items-center gap-2.5 text-lg font-extrabold tracking-tight max-sm:w-full">
-                <span className="border-pomegranate bg-cararra text-cod-gray grid size-8 place-items-center rounded-xl border-2">
-                    B
-                </span>
-                <span>BrightThanks</span>
-            </div>
-            <nav className="flex flex-1 gap-2" aria-label="Primary navigation">
-                <button
-                    className={`relative px-3.5 py-6 text-sm font-semibold transition after:absolute after:right-3.5 after:bottom-0 after:left-3.5 after:h-0.5 after:rounded ${view === 'recognition' ? 'text-cararra after:bg-pomegranate' : 'text-cararra/70 hover:text-cararra after:bg-transparent'}`}
-                    onClick={() => onNavigate('recognition')}
-                >
-                    Recognition
-                </button>
-                {canViewEmployees && (
-                    <button
-                        className={`relative px-3.5 py-6 text-sm font-semibold transition after:absolute after:right-3.5 after:bottom-0 after:left-3.5 after:h-0.5 after:rounded ${view === 'employees' ? 'text-cararra after:bg-pomegranate' : 'text-cararra/70 hover:text-cararra after:bg-transparent'}`}
-                        onClick={onOpenEmployees}
-                    >
-                        Employees
-                    </button>
-                )}
-            </nav>
-            <div className="flex items-center gap-4 max-sm:ml-auto">
-                <div
-                    className="border-cararra/20 bg-cararra/10 text-cararra flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs"
-                    title={
-                        isHealthy
-                            ? 'Services healthy (API + Database connected)'
-                            : 'Checking connectivity...'
-                    }
-                >
-                    <span
-                        className={`size-2 rounded-full ${isHealthy ? 'bg-emerald-400' : 'animate-pulse bg-amber-400'}`}
-                    />
-                    <span className="max-sm:hidden">
-                        {isHealthy ? 'Live' : 'Connecting'}
-                    </span>
+        <header className="sticky top-0 z-30 border-b border-cod-gray bg-cod-gray text-cararra shadow-lg shadow-cod-gray/10">
+            <div className="mx-auto grid min-h-18 w-[min(1240px,92vw)] grid-cols-[13rem_minmax(0,1fr)_18rem] items-center gap-4 max-lg:grid-cols-[11rem_minmax(0,1fr)_auto] max-md:grid-cols-[1fr_auto]">
+                <div className="flex items-center gap-2.5 text-lg font-extrabold tracking-tight">
+                    <BrandMark className="size-9" />
+                    <span>BrightThanks</span>
                 </div>
-                <span className="border-cararra/30 bg-cararra text-cod-gray grid size-9 place-items-center rounded-full border text-xs font-extrabold">
-                    {initials}
-                </span>
-                <div className="grid text-right max-md:hidden">
-                    <strong className="text-cararra text-sm">
-                        {user.name}
-                    </strong>
-                    <small className="text-cararra/70 text-xs capitalize">
-                        {roles.join(' / ') || 'Member'}
-                    </small>
+
+                <nav className="hidden min-w-0 items-center justify-center gap-1 md:flex" aria-label="Primary navigation">
+                    {navigation.map((item) => (
+                        <Tooltip key={item.id} text={item.description}>
+                            <Button variant={view === item.id ? 'navActive' : 'nav'} onClick={() => navigate(item.id)} aria-current={view === item.id ? 'page' : undefined}>
+                                <Icon name={item.icon} /> {item.label}
+                            </Button>
+                        </Tooltip>
+                    ))}
+                </nav>
+
+                <div className="hidden min-w-0 items-center justify-end gap-3 md:flex">
+                    <div className="flex items-center gap-1.5 rounded-full border border-cararra/20 bg-cararra/10 px-3 py-1 text-xs" title={isHealthy ? 'Services healthy' : 'Checking connectivity'}>
+                        <span className={`size-2 rounded-full ${isHealthy ? 'bg-pomegranate' : 'animate-pulse bg-cararra/50'}`} />
+                        <span>{isHealthy ? 'Live' : 'Connecting'}</span>
+                    </div>
+                    <NotificationBell notifications={notifications} onClear={onClearNotifications} />
+                    <span className="grid size-9 shrink-0 aspect-square place-items-center rounded-full border border-cararra/30 bg-cararra text-xs font-extrabold text-cod-gray leading-none">{initials}</span>
+                    <div className="grid max-lg:hidden">
+                        <strong className="max-w-28 truncate text-sm">{user.name}</strong>
+                        <small className="text-xs text-cararra/70 capitalize">{roles.join(' / ') || 'Member'}</small>
+                    </div>
+                    <Button variant="inverse" onClick={onLogout}><Icon name="logout" /><span className="max-xl:hidden">Sign out</span></Button>
                 </div>
-                <button
-                    className="border-cararra/40 text-cararra hover:border-pomegranate rounded-xl border bg-transparent px-4 py-2.5 text-sm font-bold transition hover:-translate-y-px"
-                    onClick={onLogout}
-                >
-                    Sign out
-                </button>
+
+                <Button variant="inverse" size="icon" className="justify-self-end md:hidden" aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'} onClick={() => setMenuOpen((open) => !open)}>
+                    <Icon name={menuOpen ? 'close' : 'menu'} className="size-5" />
+                </Button>
             </div>
+
+            {menuOpen && (
+                <div id="mobile-navigation" className="border-t border-cararra/15 bg-cod-gray px-[4vw] py-4 md:hidden">
+                    <nav className="grid gap-2" aria-label="Mobile navigation">
+                        {navigation.map((item) => (
+                            <Button key={item.id} variant={view === item.id ? 'navActive' : 'nav'} className="w-full justify-start" onClick={() => navigate(item.id)} aria-current={view === item.id ? 'page' : undefined}>
+                                <Icon name={item.icon} />
+                                <span className="grid text-left"><strong>{item.label}</strong><small className="font-normal text-cararra/60">{item.description}</small></span>
+                            </Button>
+                        ))}
+                    </nav>
+                    <div className="mt-4 flex items-center gap-3 border-t border-cararra/15 pt-4">
+                        <span className="grid size-10 shrink-0 aspect-square place-items-center rounded-full bg-cararra text-xs font-extrabold text-cod-gray leading-none">{initials}</span>
+                        <div className="min-w-0 flex-1"><strong className="block truncate text-sm">{user.name}</strong><small className="text-xs text-cararra/60 capitalize">{roles.join(' / ') || 'Member'}</small></div>
+                        <Button variant="inverse" onClick={onLogout}><Icon name="logout" /> Sign out</Button>
+                    </div>
+                </div>
+            )}
         </header>
     );
 }

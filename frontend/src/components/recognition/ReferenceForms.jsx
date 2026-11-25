@@ -2,22 +2,21 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../../api/client';
 import { apiRoutes } from '../../api/routes';
+import Button from '../common/Button';
+import ConfirmDialog from '../common/ConfirmDialog';
+import Icon from '../common/Icon';
 import CompanyValueForm from './CompanyValueForm';
 import OccasionForm from './OccasionForm';
 
 export default function ReferenceForms({ values, occasions, onChanged }) {
+    const [activeTab, setActiveTab] = useState('values');
     const [editingValue, setEditingValue] = useState(null);
     const [editingOccasion, setEditingOccasion] = useState(null);
     const [errorNotice, setErrorNotice] = useState('');
-    const deactivate = useMutation({
-        mutationFn: (route) => apiClient.delete(route),
-    });
-    const reactivate = useMutation({
-        mutationFn: (route) => apiClient.patch(route, { is_active: true }),
-    });
-    const forceDelete = useMutation({
-        mutationFn: (route) => apiClient.delete(String(route) + '?force=1'),
-    });
+    const [pendingAction, setPendingAction] = useState(null);
+    const deactivate = useMutation({ mutationFn: (route) => apiClient.delete(route) });
+    const reactivate = useMutation({ mutationFn: (route) => apiClient.patch(route, { is_active: true }) });
+    const forceDelete = useMutation({ mutationFn: (route) => apiClient.delete(`${route}?force=1`) });
 
     const saved = async (message) => {
         setEditingValue(null);
@@ -26,226 +25,103 @@ export default function ReferenceForms({ values, occasions, onChanged }) {
         await onChanged(message);
     };
 
-    const handleDeactivate = async (label, route) => {
-        if (
-            !window.confirm(
-                `Deactivate ${label}? Historical recognitions will be preserved.`,
-            )
-        )
-            return;
+    const updateStatus = async (label, route, active) => {
         try {
-            await deactivate.mutateAsync(route);
-            await saved(`${label} deactivated.`);
-        } catch (err) {
-            setErrorNotice(
-                err instanceof ApiError ? err.message : 'Failed to deactivate.',
-            );
+            if (active) await reactivate.mutateAsync(route);
+            else await deactivate.mutateAsync(route);
+            await saved(`${label} ${active ? 'reactivated' : 'deactivated'}.`);
+        } catch (error) {
+            setErrorNotice(error instanceof ApiError ? error.message : 'The item could not be updated.');
         }
     };
 
-    const handleReactivate = async (label, route) => {
+    const confirmPendingAction = async () => {
+        if (!pendingAction) return;
         try {
-            await reactivate.mutateAsync(route);
-            await saved(`${label} reactivated.`);
-        } catch (err) {
-            setErrorNotice(
-                err instanceof ApiError ? err.message : 'Failed to reactivate.',
-            );
+            if (pendingAction.type === 'delete') {
+                await forceDelete.mutateAsync(pendingAction.route);
+                await saved(`${pendingAction.label} permanently deleted.`);
+            } else {
+                await updateStatus(pendingAction.label, pendingAction.route, false);
+            }
+            setPendingAction(null);
+        } catch (error) {
+            setErrorNotice(error instanceof ApiError ? error.message : 'The action could not be completed.');
         }
     };
 
-    const handleDelete = async (label, route) => {
-        if (
-            !window.confirm(
-                `Permanently delete ${label}? This cannot be undone.`,
-            )
-        )
-            return;
-        try {
-            await forceDelete.mutateAsync(route);
-            await saved(`${label} permanently deleted.`);
-        } catch (err) {
-            setErrorNotice(
-                err instanceof ApiError ? err.message : 'Cannot delete item.',
-            );
-        }
-    };
+    const items = activeTab === 'values' ? values : occasions;
+    const routeFor = (item) => activeTab === 'values' ? apiRoutes.companyValue(item.id) : apiRoutes.occasion(item.id);
+    const beginEdit = (item) => activeTab === 'values' ? setEditingValue(item) : setEditingOccasion(item);
 
     return (
-        <section className="grid gap-6">
-            <div>
-                <h3 className="text-lg font-semibold">Reference data</h3>
-                <p className="text-cod-gray/75 text-sm">
-                    Create, update, deactivate, reactivate, or delete
-                    recognition options.
-                </p>
-                {errorNotice && (
-                    <div className="border-pomegranate bg-pomegranate/10 text-cod-gray mt-2 rounded-lg border-l-4 p-2.5 text-xs font-semibold">
-                        {errorNotice}
-                    </div>
+        <section className="grid gap-5">
+            <div className="flex items-start gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl border-2 border-pomegranate bg-cod-gray text-cararra">
+                    <Icon name="settings" />
+                </span>
+                <div>
+                    <h3 className="text-lg font-semibold text-cod-gray">Reference details</h3>
+                    <p className="text-sm text-cod-gray/75">Manage the occasions and values used throughout recognition.</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1 rounded-xl border border-cod-gray/20 bg-cararra p-1" role="tablist" aria-label="Reference data categories">
+                <Button variant={activeTab === 'values' ? 'accent' : 'quiet'} role="tab" aria-selected={activeTab === 'values'} onClick={() => setActiveTab('values')}>
+                    <Icon name="sparkle" /> Company values
+                </Button>
+                <Button variant={activeTab === 'occasions' ? 'accent' : 'quiet'} role="tab" aria-selected={activeTab === 'occasions'} onClick={() => setActiveTab('occasions')}>
+                    <Icon name="recognition" /> Occasions
+                </Button>
+            </div>
+
+            {errorNotice && <div role="alert" className="rounded-xl border-l-4 border-pomegranate bg-pomegranate/10 p-3 text-sm font-semibold">{errorNotice}</div>}
+
+            <div className="rounded-2xl border border-cod-gray/20 bg-cararra p-5" role="tabpanel">
+                {activeTab === 'values' ? (
+                    <CompanyValueForm value={editingValue} onSaved={saved} onCancel={editingValue ? () => setEditingValue(null) : null} />
+                ) : (
+                    <OccasionForm occasion={editingOccasion} values={values} onSaved={saved} onCancel={editingOccasion ? () => setEditingOccasion(null) : null} />
                 )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-                <CompanyValueForm
-                    value={editingValue}
-                    onSaved={saved}
-                    onCancel={editingValue ? () => setEditingValue(null) : null}
-                />
-                <OccasionForm
-                    occasion={editingOccasion}
-                    values={values}
-                    onSaved={saved}
-                    onCancel={
-                        editingOccasion ? () => setEditingOccasion(null) : null
-                    }
-                />
+            <div className="grid gap-3">
+                <div className="flex items-center justify-between gap-3">
+                    <h4 className="font-bold">{activeTab === 'values' ? 'Company values' : 'Occasions'}</h4>
+                    <span className="rounded-full border border-cod-gray/20 px-3 py-1 text-xs font-semibold">{items.length} items</span>
+                </div>
+                {items.map((item) => (
+                    <article className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-cod-gray/20 border-l-4 border-l-pomegranate bg-cararra p-4 max-sm:grid-cols-1" key={item.id}>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                                <strong className="min-w-0 flex-1 truncate font-semibold" title={item.name}>{item.name}</strong>
+                                <span className={`inline-flex h-5 w-20 shrink-0 items-center justify-center rounded-full border px-2 text-[10px] font-bold tracking-wider uppercase ${item.is_active ? 'border-cod-gray bg-cod-gray text-cararra' : 'border-cod-gray/20 bg-cod-gray/5 text-cod-gray/65'}`}>{item.is_active ? 'Active' : 'Inactive'}</span>
+                            </div>
+                            <small className="block truncate text-cod-gray/70">{item.default_points ? `${item.default_points} recommended points` : 'Custom points'}</small>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 max-sm:justify-start">
+                            <Button variant="secondary" size="sm" onClick={() => beginEdit(item)}><Icon name="edit" /> Edit</Button>
+                            {item.is_active ? (
+                                <Button variant="secondary" size="sm" onClick={() => setPendingAction({ type: 'deactivate', label: item.name, route: routeFor(item) })}><Icon name="pause" /> Deactivate</Button>
+                            ) : (
+                                <Button variant="secondary" size="sm" onClick={() => updateStatus(item.name, routeFor(item), true)}><Icon name="play" /> Reactivate</Button>
+                            )}
+                            <Button variant="danger" size="sm" onClick={() => setPendingAction({ type: 'delete', label: item.name, route: routeFor(item) })}><Icon name="trash" /> Delete</Button>
+                        </div>
+                    </article>
+                ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-                <div className="grid content-start gap-2">
-                    <h4 className="font-bold">Company values</h4>
-                    {values.map((value) => (
-                        <div
-                            className="border-cod-gray/20 flex items-center justify-between gap-3 rounded-xl border p-3"
-                            key={value.id}
-                        >
-                            <div>
-                                <span className="font-semibold">
-                                    {value.name}
-                                </span>
-                                <span
-                                    className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${value.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}
-                                >
-                                    {value.is_active ? 'Active' : 'Inactive'}
-                                </span>
-                            </div>
-                            <span className="flex flex-wrap gap-1.5">
-                                <button
-                                    className="border-cod-gray hover:border-pomegranate rounded-lg border px-2.5 py-1 text-xs font-bold"
-                                    onClick={() => setEditingValue(value)}
-                                >
-                                    Edit
-                                </button>
-                                {value.is_active ? (
-                                    <button
-                                        className="bg-cod-gray text-cararra hover:outline-pomegranate rounded-lg px-2.5 py-1 text-xs font-bold hover:outline-2"
-                                        onClick={() =>
-                                            handleDeactivate(
-                                                value.name,
-                                                apiRoutes.companyValue(
-                                                    value.id,
-                                                ),
-                                            )
-                                        }
-                                    >
-                                        Deactivate
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="rounded-lg border border-emerald-600 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
-                                        onClick={() =>
-                                            handleReactivate(
-                                                value.name,
-                                                apiRoutes.companyValue(
-                                                    value.id,
-                                                ),
-                                            )
-                                        }
-                                    >
-                                        Reactivate
-                                    </button>
-                                )}
-                                <button
-                                    className="rounded-lg border border-red-500/40 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50"
-                                    onClick={() =>
-                                        handleDelete(
-                                            value.name,
-                                            apiRoutes.companyValue(value.id),
-                                        )
-                                    }
-                                >
-                                    Delete
-                                </button>
-                            </span>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="grid content-start gap-2">
-                    <h4 className="font-bold">Occasions</h4>
-                    {occasions.map((occasion) => (
-                        <div
-                            className="border-cod-gray/20 flex items-center justify-between gap-3 rounded-xl border p-3"
-                            key={occasion.id}
-                        >
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <strong className="block">
-                                        {occasion.name}
-                                    </strong>
-                                    <span
-                                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${occasion.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}
-                                    >
-                                        {occasion.is_active
-                                            ? 'Active'
-                                            : 'Inactive'}
-                                    </span>
-                                </div>
-                                <small className="text-cod-gray/70">
-                                    {occasion.default_points
-                                        ? `${occasion.default_points} points`
-                                        : 'Flexible points'}
-                                </small>
-                            </div>
-                            <span className="flex flex-wrap gap-1.5">
-                                <button
-                                    className="border-cod-gray hover:border-pomegranate rounded-lg border px-2.5 py-1 text-xs font-bold"
-                                    onClick={() => setEditingOccasion(occasion)}
-                                >
-                                    Edit
-                                </button>
-                                {occasion.is_active ? (
-                                    <button
-                                        className="bg-cod-gray text-cararra hover:outline-pomegranate rounded-lg px-2.5 py-1 text-xs font-bold hover:outline-2"
-                                        onClick={() =>
-                                            handleDeactivate(
-                                                occasion.name,
-                                                apiRoutes.occasion(occasion.id),
-                                            )
-                                        }
-                                    >
-                                        Deactivate
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="rounded-lg border border-emerald-600 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
-                                        onClick={() =>
-                                            handleReactivate(
-                                                occasion.name,
-                                                apiRoutes.occasion(occasion.id),
-                                            )
-                                        }
-                                    >
-                                        Reactivate
-                                    </button>
-                                )}
-                                <button
-                                    className="rounded-lg border border-red-500/40 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50"
-                                    onClick={() =>
-                                        handleDelete(
-                                            occasion.name,
-                                            apiRoutes.occasion(occasion.id),
-                                        )
-                                    }
-                                >
-                                    Delete
-                                </button>
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            <ConfirmDialog
+                open={Boolean(pendingAction)}
+                title={`Employee Administration: ${pendingAction?.type === 'delete' ? 'Permanently Delete Item' : 'Deactivate Item'}`}
+                description={pendingAction?.type === 'delete' ? `${pendingAction?.label ?? 'This item'} will be permanently removed. This cannot be undone.` : `${pendingAction?.label ?? 'This item'} will no longer appear as an option. Historical recognitions will be preserved.`}
+                confirmLabel={pendingAction?.type === 'delete' ? 'Delete permanently' : 'Deactivate'}
+                destructive
+                loading={deactivate.isPending || forceDelete.isPending}
+                onCancel={() => setPendingAction(null)}
+                onConfirm={confirmPendingAction}
+            />
         </section>
     );
 }

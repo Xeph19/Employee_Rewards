@@ -19,4 +19,9 @@ class Wallet extends Model
     {
         return $this->hasMany(LedgerEntry::class);
     }
+
+    public function redemptions(): HasMany
+    {
+        return $this->hasMany(Redemption::class);
+    }
 }

@@ -26,15 +26,18 @@ class DatabaseSeeder extends Seeder
         ])->map(fn (string $label, string $name) => Role::query()->firstOrCreate(['name' => $name], ['label' => $label]));
 
         $values = collect([
-            ['name' => 'Customer First', 'color' => '#0f766e', 'description' => 'Create meaningful outcomes for customers.'],
-            ['name' => 'One Team', 'color' => '#7c3aed', 'description' => 'Win through trust and collaboration.'],
-            ['name' => 'Own the Outcome', 'color' => '#c2410c', 'description' => 'Act with initiative and accountability.'],
-        ])->map(fn (array $value) => CompanyValue::query()->firstOrCreate(['name' => $value['name']], $value));
+            ['name' => 'Customer First', 'color' => '#F11F18', 'default_points' => 50, 'description' => 'Create meaningful outcomes for customers.'],
+            ['name' => 'One Team', 'color' => '#F11F18', 'default_points' => 75, 'description' => 'Win through trust and collaboration.'],
+            ['name' => 'Own the Outcome', 'color' => '#F11F18', 'default_points' => 100, 'description' => 'Act with initiative and accountability.'],
+        ])->map(fn (array $value) => CompanyValue::query()->updateOrCreate(['name' => $value['name']], $value));
 
         collect([
             ['name' => 'Birthday', 'description' => 'Celebrate a teammate’s birthday.', 'default_points' => 100],
             ['name' => 'Work Anniversary', 'description' => 'Recognize commitment and contribution.', 'default_points' => 250],
             ['name' => 'Above & Beyond', 'description' => 'Celebrate exceptional impact.', 'default_points' => 500],
+            ['name' => 'KPI Achieved', 'description' => 'Reward reaching key performance indicators and target milestones.', 'default_points' => 300],
+            ['name' => 'Long Service', 'description' => 'Honour enduring tenure and loyalty to the organisation.', 'default_points' => 600],
+            ['name' => 'Event Attendance', 'description' => 'Acknowledge participation and representation at company events.', 'default_points' => 150],
         ])->each(function (array $data) use ($values): void {
             $occasion = Occasion::query()->firstOrCreate(['name' => $data['name']], $data);
             $occasion->companyValues()->syncWithoutDetaching($values->pluck('id'));
@@ -48,6 +51,9 @@ class DatabaseSeeder extends Seeder
         $admin->wallet()->firstOrCreate([], ['balance' => 0]);
         $manager->wallet()->firstOrCreate([], ['balance' => 0]);
         $employee->wallet()->firstOrCreate([], ['balance' => 0]);
+
+        $this->call(MerchantRewardSeeder::class);
+        $this->call(DemoDataSeeder::class);
     }
 
     private function createUser(string $name, string $email, string $number, string $department, string $title, Role $role, ?int $managerId = null): User

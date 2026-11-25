@@ -7,11 +7,28 @@ use App\Facades\Rewards;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRecognitionRequest;
 use App\Models\User;
+use App\Services\RecognitionFeedService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request;
 
 class RecognitionController extends Controller
 {
+    public function index(Request $request, RecognitionFeedService $feed): JsonResponse
+    {
+        $request->user() || abort(401);
+        $recognitions = $feed->paginate();
+
+        return response()->json([
+            'data' => $recognitions->items(),
+            'meta' => [
+                'current_page' => $recognitions->currentPage(),
+                'last_page' => $recognitions->lastPage(),
+                'per_page' => $recognitions->perPage(),
+                'total' => $recognitions->total(),
+            ],
+        ]);
+    }
+
     public function store(StoreRecognitionRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -26,8 +43,6 @@ class RecognitionController extends Controller
             points: isset($data['points']) ? (int) $data['points'] : null,
             sgdAmount: isset($data['sgd_amount']) ? (string) $data['sgd_amount'] : null,
         );
-
-        Cache::forget('recognitions:feed:v1');
 
         return response()->json(['data' => $recognition], 201);
     }

@@ -60,6 +60,11 @@ class User extends Authenticatable
         return $this->hasMany(Recognition::class, 'awarded_by');
     }
 
+    public function redemptions(): HasMany
+    {
+        return $this->hasMany(Redemption::class);
+    }
+
     public function hasRole(RoleName|string $role): bool
     {
         $name = $role instanceof RoleName ? $role->value : $role;

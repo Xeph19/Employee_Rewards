@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['name', 'description', 'color', 'is_active'])]
+#[Fillable(['name', 'description', 'default_points', 'color', 'is_active'])]
 class CompanyValue extends Model
 {
     public function occasions(): BelongsToMany

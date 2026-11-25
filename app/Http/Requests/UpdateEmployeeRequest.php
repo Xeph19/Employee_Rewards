@@ -36,6 +36,7 @@ class UpdateEmployeeRequest extends FormRequest
             'manager_id' => ['nullable', 'integer', Rule::exists('employees', 'id')->where('is_active', true), Rule::notIn([$this->route('employee')?->id])],
             'role' => ['sometimes', 'required', Rule::enum(RoleName::class)],
             'joined_at' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

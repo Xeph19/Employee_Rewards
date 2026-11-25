@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../../api/client';
 import { apiRoutes } from '../../api/routes';
+import Button from '../common/Button';
+import Icon from '../common/Icon';
+import Field from '../common/Field';
 
 export default function CompanyValueForm({ value, onSaved, onCancel }) {
     const [errors, setErrors] = useState({});
@@ -19,6 +22,7 @@ export default function CompanyValueForm({ value, onSaved, onCancel }) {
             name: data.name,
             color: data.color,
             description: data.description,
+            default_points: data.default_points ? Number(data.default_points) : null,
             ...(value ? { is_active: isActive } : {}),
         };
         try {
@@ -37,32 +41,14 @@ export default function CompanyValueForm({ value, onSaved, onCancel }) {
     };
     return (
         <form
-            className="border-cod-gray/20 grid gap-3 rounded-xl border p-4"
+            className="grid gap-4"
             onSubmit={submit}
         >
-            <h4 className="font-bold">
-                {value ? 'Edit company value' : 'New company value'}
-            </h4>
-            <input
-                name="name"
-                required
-                defaultValue={value?.name ?? ''}
-                placeholder="Company value name"
-                aria-label="Company value name"
-            />
-            <input
-                name="color"
-                required
-                defaultValue={value?.color ?? '#F11F18'}
-                aria-label="Company value color"
-                placeholder="Hex color e.g. #F11F18"
-            />
-            <textarea
-                name="description"
-                defaultValue={value?.description ?? ''}
-                placeholder="Description"
-                aria-label="Description"
-            />
+            <div className="grid gap-1"><h4 className="font-bold">{value ? 'Edit company value' : 'New company value'}</h4><p className="text-xs text-cod-gray/65">Define the principle employees demonstrate through their work.</p></div>
+            <Field label="Value name" error={errors.name?.[0]}><input name="name" required defaultValue={value?.name ?? ''} placeholder="e.g. Customer First" /></Field>
+            <Field label="Display color" error={errors.color?.[0]}><div className="grid grid-cols-[3rem_1fr] gap-2"><input className="h-11 p-1" name="color_picker" type="color" defaultValue={value?.color ?? '#F11F18'} aria-label="Choose display color" onChange={(event) => { event.currentTarget.nextElementSibling.value = event.currentTarget.value.toUpperCase(); }} /><input name="color" required defaultValue={value?.color ?? '#F11F18'} placeholder="#F11F18" /></div></Field>
+            <Field label="Recommended points" error={errors.default_points?.[0]}><input name="default_points" type="number" min="1" defaultValue={value?.default_points ?? ''} placeholder="e.g. 50" /></Field>
+            <Field label="Description" error={errors.description?.[0]}><textarea name="description" defaultValue={value?.description ?? ''} placeholder="Describe how this value appears in everyday work." /></Field>
             {value && (
                 <label className="text-cod-gray flex items-center gap-2 text-xs font-semibold">
                     <input
@@ -83,21 +69,24 @@ export default function CompanyValueForm({ value, onSaved, onCancel }) {
                         ))}
                 </div>
             )}
-            <div className="flex gap-2">
-                <button
-                    disabled={save.isPending}
-                    className="bg-cod-gray text-cararra hover:outline-pomegranate rounded-xl px-4 py-2.5 font-bold hover:outline-2 disabled:opacity-60"
+            <div className="flex justify-end gap-2 max-sm:flex-col-reverse">
+                <Button
+                    type="submit"
+                    loading={save.isPending}
+                    className="max-sm:w-full"
                 >
+                    <Icon name="sparkle" />
                     {save.isPending ? 'Saving...' : 'Save value'}
-                </button>
+                </Button>
                 {onCancel && (
-                    <button
+                    <Button
                         type="button"
-                        className="border-cod-gray rounded-xl border px-4 py-2.5 font-bold"
+                        variant="secondary"
+                        className="max-sm:w-full"
                         onClick={onCancel}
                     >
                         Cancel
-                    </button>
+                    </Button>
                 )}
             </div>
         </form>

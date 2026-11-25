@@ -18,6 +18,7 @@ class UpdateCompanyValueRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:100', Rule::unique('company_values')->ignore($this->route('company_value'))],
             'description' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'default_points' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000000'],
             'color' => ['sometimes', 'required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'is_active' => ['sometimes', 'boolean'],
         ];

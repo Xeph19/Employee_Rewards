@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../../api/client';
 import { apiRoutes } from '../../api/routes';
+import Button from '../common/Button';
+import Icon from '../common/Icon';
+import Field from '../common/Field';
 
 export default function OccasionForm({ occasion, values, onSaved, onCancel }) {
     const [errors, setErrors] = useState({});
@@ -43,34 +46,14 @@ export default function OccasionForm({ occasion, values, onSaved, onCancel }) {
     };
     return (
         <form
-            className="border-cod-gray/20 grid gap-3 rounded-xl border p-4"
+            className="grid gap-4"
             onSubmit={submit}
         >
-            <h4 className="font-bold">
-                {occasion ? 'Edit occasion' : 'New occasion'}
-            </h4>
-            <input
-                name="name"
-                required
-                defaultValue={occasion?.name ?? ''}
-                placeholder="Occasion name"
-                aria-label="Occasion name"
-            />
-            <input
-                name="default_points"
-                type="number"
-                min="1"
-                defaultValue={occasion?.default_points ?? ''}
-                placeholder="Default points"
-                aria-label="Default points"
-            />
-            <textarea
-                name="description"
-                defaultValue={occasion?.description ?? ''}
-                placeholder="Description"
-                aria-label="Description"
-            />
-            <div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+            <div className="grid gap-1"><h4 className="font-bold">{occasion ? 'Edit occasion' : 'New occasion'}</h4><p className="text-xs text-cod-gray/65">Create a repeatable reason for recognizing employee contributions.</p></div>
+            <Field label="Occasion name" error={errors.name?.[0]}><input name="name" required defaultValue={occasion?.name ?? ''} placeholder="e.g. Above & Beyond" /></Field>
+            <Field label="Default points" error={errors.default_points?.[0]}><input name="default_points" type="number" min="1" defaultValue={occasion?.default_points ?? ''} placeholder="e.g. 100" /></Field>
+            <Field label="Description" error={errors.description?.[0]}><textarea name="description" defaultValue={occasion?.description ?? ''} placeholder="Describe when this occasion should be used." /></Field>
+            <fieldset><legend className="text-sm font-semibold text-cod-gray">Linked company values</legend><div className="mt-2 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
                 {values.map((value) => (
                     <label
                         className="border-cod-gray/20 flex items-center gap-2 rounded-lg border p-2.5 text-xs font-medium"
@@ -85,7 +68,7 @@ export default function OccasionForm({ occasion, values, onSaved, onCancel }) {
                         {value.name}
                     </label>
                 ))}
-            </div>
+            </div></fieldset>
             {occasion && (
                 <label className="text-cod-gray flex items-center gap-2 text-xs font-semibold">
                     <input
@@ -106,21 +89,24 @@ export default function OccasionForm({ occasion, values, onSaved, onCancel }) {
                         ))}
                 </div>
             )}
-            <div className="flex gap-2">
-                <button
-                    disabled={save.isPending}
-                    className="bg-cod-gray text-cararra hover:outline-pomegranate rounded-xl px-4 py-2.5 font-bold hover:outline-2 disabled:opacity-60"
+            <div className="flex justify-end gap-2 max-sm:flex-col-reverse">
+                <Button
+                    type="submit"
+                    loading={save.isPending}
+                    className="max-sm:w-full"
                 >
+                    <Icon name="recognition" />
                     {save.isPending ? 'Saving...' : 'Save occasion'}
-                </button>
+                </Button>
                 {onCancel && (
-                    <button
+                    <Button
                         type="button"
-                        className="border-cod-gray rounded-xl border px-4 py-2.5 font-bold"
+                        variant="secondary"
+                        className="max-sm:w-full"
                         onClick={onCancel}
                     >
                         Cancel
-                    </button>
+                    </Button>
                 )}
             </div>
         </form>

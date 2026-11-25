@@ -35,6 +35,7 @@ class StoreEmployeeRequest extends FormRequest
             'manager_id' => ['nullable', 'integer', Rule::exists('employees', 'id')->where('is_active', true)],
             'role' => ['required', Rule::enum(RoleName::class)],
             'joined_at' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date'],
         ];
     }
 }

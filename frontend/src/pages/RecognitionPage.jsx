@@ -1,16 +1,34 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import AppreciationBoard from '../components/recognition/AppreciationBoard';
 import AwardForm from '../components/recognition/AwardForm';
 import ReferenceForms from '../components/recognition/ReferenceForms';
 import Modal from '../components/common/Modal';
+import Button from '../components/common/Button';
+import Tooltip from '../components/common/Tooltip';
+import { useRecognitionsQuery } from '../queries/useRecognitionsQuery';
+import Icon from '../components/common/Icon';
 
 export default function RecognitionPage({ data, onChanged }) {
     const [awardOpen, setAwardOpen] = useState(false);
     const [referencesOpen, setReferencesOpen] = useState(false);
+    const [recognitionPage, setRecognitionPage] = useState(1);
+    const queryClient = useQueryClient();
+    const recognitions = useRecognitionsQuery(recognitionPage);
 
-    const handleChanged = (message, close) => async () => {
-        await onChanged(message);
-        close(false);
+    const handleAwarded = async () => {
+        setAwardOpen(false);
+        await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['recognitions'] }),
+            onChanged('Recognition awarded successfully.', true),
+        ]);
+    };
+
+    const handleRevoked = async () => {
+        await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['recognitions'] }),
+            onChanged('Recognition revoked and points reversed.', true),
+        ]);
     };
 
     return (
@@ -33,35 +51,42 @@ export default function RecognitionPage({ data, onChanged }) {
                 </span>
             </section>
             <section className="mb-8 grid grid-cols-[2fr_1fr] gap-4 max-md:grid-cols-1">
-                <article className="border-cod-gray bg-cod-gray flex items-start gap-4 rounded-2xl border p-6">
-                    <div className="border-pomegranate bg-cod-gray text-cararra grid size-11 shrink-0 place-items-center rounded-xl border-2 text-xl font-black">
-                        *
+                <article className="border-cod-gray bg-cod-gray flex items-center gap-4 rounded-2xl border p-6">
+                    <div className="border-pomegranate bg-cod-gray text-cararra flex size-12 shrink-0 items-center justify-center rounded-xl border-2 text-xl font-black">
+                        <Icon name="sparkle" className="size-6 text-pomegranate" />
                     </div>
-                    <div className="grid gap-2">
+                    <div className="grid gap-1">
                         <span className="text-cararra/80">
                             Your available balance
                         </span>
                         <strong className="text-cararra text-4xl leading-none font-semibold tracking-[-.04em]">
                             {data.wallet?.balance ?? 0} points
                         </strong>
-                        <p className="text-cararra/75">
+                        <p className="text-cararra/75 text-sm">
                             Earned through meaningful recognition from your
                             team.
                         </p>
                     </div>
                 </article>
-                <article className="border-cod-gray/20 bg-cararra flex items-start gap-4 rounded-2xl border p-6 shadow-sm">
-                    <div className="border-cod-gray bg-cararra text-cod-gray grid size-11 shrink-0 place-items-center rounded-xl border text-xl font-black">
-                        +
+                <article className="border-cod-gray/20 bg-cararra flex items-center gap-4 rounded-2xl border p-6 shadow-sm">
+                    <div className="border-cod-gray/40 bg-cod-gray/5 text-cod-gray flex size-12 shrink-0 items-center justify-center rounded-xl border text-xl font-black">
+                        <Icon name="gift" className="size-6 text-cod-gray" />
                     </div>
-                    <div className="grid gap-2">
-                        <span className="text-cod-gray/75">
-                            Conversion rate
-                        </span>
-                        <strong className="text-cod-gray text-xl">
+                    <div className="grid gap-1">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-cod-gray/75 text-sm">
+                                Conversion rate
+                            </span>
+                            <Tooltip text="Fixed exchange rate used when converting awards between Singapore Dollars and reward points.">
+                                <span tabIndex="0" className="inline-grid size-5 cursor-help place-items-center rounded-full border border-cod-gray/30 text-cod-gray hover:border-pomegranate hover:text-pomegranate" aria-label="SGD conversion rate info">
+                                    <Icon name="info" className="size-3" />
+                                </span>
+                            </Tooltip>
+                        </div>
+                        <strong className="text-cod-gray text-2xl font-bold leading-tight">
                             SGD 1 = {data.points_per_sgd} pts
                         </strong>
-                        <p className="text-cod-gray/75">
+                        <p className="text-cod-gray/75 text-sm">
                             Calculated consistently by the API.
                         </p>
                     </div>
@@ -69,47 +94,49 @@ export default function RecognitionPage({ data, onChanged }) {
             </section>
             <div className="mb-6 flex flex-wrap gap-3">
                 {data.permissions.award && (
-                    <button
-                        className="bg-cod-gray text-cararra hover:outline-pomegranate rounded-xl px-5 py-3 font-bold transition hover:outline-2"
+                    <Button
+                        size="lg"
                         onClick={() => setAwardOpen(true)}
                     >
+                        <Icon name="plus" />
                         Give recognition
-                    </button>
+                    </Button>
                 )}
                 {data.permissions.manage && (
-                    <button
-                        className="border-cod-gray text-cod-gray hover:border-pomegranate rounded-xl border-2 bg-transparent px-5 py-3 font-bold transition"
+                    <Button
+                        variant="secondary"
+                        size="lg"
                         onClick={() => setReferencesOpen(true)}
                     >
+                        <Icon name="settings" />
                         Manage reference data
-                    </button>
+                    </Button>
                 )}
             </div>
             <div>
                 <AppreciationBoard
-                    recognitions={data.recognitions}
+                    recognitions={recognitions.data?.data ?? []}
+                    meta={recognitions.data?.meta}
+                    loading={recognitions.isPending}
+                    fetching={recognitions.isFetching}
+                    onPageChange={setRecognitionPage}
                     canRevoke={data.permissions.manage}
-                    onRevoked={() =>
-                        onChanged('Recognition revoked and points reversed.')
-                    }
+                    onRevoked={handleRevoked}
                 />
             </div>
             <Modal
                 open={awardOpen}
-                title="Give recognition"
+                title="Employee Administration: Give Recognition"
                 onClose={() => setAwardOpen(false)}
             >
                 <AwardForm
                     data={data}
-                    onAwarded={handleChanged(
-                        'Recognition awarded successfully.',
-                        setAwardOpen,
-                    )}
+                    onAwarded={handleAwarded}
                 />
             </Modal>
             <Modal
                 open={referencesOpen}
-                title="Manage reference data"
+                title="Employee Administration: Manage Reference Data"
                 onClose={() => setReferencesOpen(false)}
             >
                 <ReferenceForms
