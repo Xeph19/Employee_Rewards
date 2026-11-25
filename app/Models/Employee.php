@@ -15,11 +15,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $employee_number
  * @property string $department
  * @property string $job_title
+ * @property string|null $joined_at
+ * @property string|null $birth_date
  * @property bool $is_active
  * @property-read User|null $user
  * @property-read Employee|null $manager
  */
-#[Fillable(['user_id', 'manager_id', 'employee_number', 'department', 'job_title', 'joined_at', 'is_active'])]
+#[Fillable(['user_id', 'manager_id', 'employee_number', 'department', 'job_title', 'joined_at', 'birth_date', 'is_active'])]
 class Employee extends Model
 {
     use HasFactory;
@@ -41,6 +43,10 @@ class Employee extends Model
 
     protected function casts(): array
     {
-        return ['joined_at' => 'date', 'is_active' => 'boolean'];
+        return [
+            'joined_at' => 'date',
+            'birth_date' => 'date',
+            'is_active' => 'boolean',
+        ];
     }
 }
